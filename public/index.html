@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Todolist - UI</title>
+    <style>
+      body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:20px}
+      .done{text-decoration:line-through;color:gray}
+      button{margin-left:8px}
+    </style>
+  </head>
+  <body>
+    <h1>Todolist (UI)</h1>
+    <form id="form">
+      <input id="titre" placeholder="Titre de la tâche" required />
+      <button type="submit">Ajouter</button>
+    </form>
+    <ul id="list"></ul>
+
+    <script src="/ui.js"></script>
+  </body>
+</html>

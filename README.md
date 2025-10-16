@@ -1,11 +1,5 @@
 # Todolist Express MVC
 
-Petite API Todolist en Express (architecture MVC) offrant les opérations:
-- Ajouter une tâche (POST /tasks)
-- Lister les tâches (GET /tasks)
-- Marquer comme terminée (PUT /tasks/:id/complete)
-- Supprimer une tâche (DELETE /tasks/:id)
-
 Installation
 
 ```powershell
@@ -18,23 +12,31 @@ Exemples
 Ajouter une tâche:
 
 ```powershell
-curl -Method POST -ContentType 'application/json' -Body '{"titre":"Apprendre JavaScript"}' http://localhost:3000/tasks
+Invoke-RestMethod -Uri http://localhost:3000/api/todos -Method Post -ContentType 'application/json' -Body '{"titre":"Apprendre JavaScript"}' | ConvertTo-Json
 ```
 
 Lister:
 
 ```powershell
-curl http://localhost:3000/tasks
+Invoke-RestMethod http://localhost:3000/api/todos
 ```
 
 Terminer:
 
 ```powershell
-curl -Method PUT http://localhost:3000/tasks/1/complete
+Invoke-RestMethod -Uri http://localhost:3000/api/todos/1/complete -Method Put
 ```
 
 Supprimer:
 
 ```powershell
-curl -Method DELETE http://localhost:3000/tasks/1
+Invoke-RestMethod -Uri http://localhost:3000/api/todos/1 -Method Delete
 ```
+
+UI
+--
+Un frontend minimal est fourni dans `public/`. Après démarrage du serveur, ouvre dans ton navigateur:
+
+http://localhost:3000/ui
+
+Tu peux ajouter, marquer comme terminé et supprimer depuis cette page.
