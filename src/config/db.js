@@ -1,14 +1,12 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
-async function connect(uri) {
+export async function connect(uri) {
   if (!uri) {
     console.warn('MONGODB_URI not set - running with in-memory storage');
     return null;
   }
   try {
-    await mongoose.connect(uri, {
-      // useUnifiedTopology etc not necessary for modern mongoose
-    });
+    await mongoose.connect(uri, {});
     console.log('MongoDB connected');
     return mongoose.connection;
   } catch (err) {
@@ -17,4 +15,4 @@ async function connect(uri) {
   }
 }
 
-module.exports = { connect, mongoose };
+export { mongoose };

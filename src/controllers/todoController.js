@@ -1,8 +1,8 @@
-const Todo = require('../models/todoModel');
-const TodoSchema = require('../models/todoSchema');
-const db = require('../config/db');
-const pgConf = require('../config/pg');
-const TodoPgModel = require('../models/todoPgModel');
+import Todo from '../models/todoModel.js';
+import TodoSchema from '../models/todoSchema.js';
+import * as db from '../config/db.js';
+import * as pgConf from '../config/pg.js';
+import TodoPgModel from '../models/todoPgModel.js';
 
 const todoModel = new Todo();
 let todoPg = null;
@@ -13,22 +13,29 @@ function getTodoPg() {
       if (!todoPg) todoPg = new TodoPgModel(client);
       return todoPg;
     }
-  } catch (e) {
-    // ignore
-  }
+  } catch (e) {}
   return null;
+}
+
+function isMongoConnected() {
+  return db.mongoose && db.mongoose.connection && db.mongoose.connection.readyState === 1;
 }
 
 class TodoController {
   static async list(req, res) {
     try {
-      // prefer Postgres if available
       const _pg = getTodoPg();
+      const _mongo = isMongoConnected();
+      
+      if (_pg && _mongo) {
+        const rows = await _pg.getAll();
+        return res.json(rows);
+      }
       if (_pg) {
         const rows = await _pg.getAll();
         return res.json(rows);
       }
-      if (db.mongoose && db.mongoose.connection && db.mongoose.connection.readyState === 1) {
+      if (_mongo) {
         const docs = await TodoSchema.find().sort({ createdAt: 1 }).lean();
         return res.json(docs.map(d => ({ id: d._id, titre: d.titre, fait: d.fait })));
       }
@@ -43,12 +50,20 @@ class TodoController {
     try {
       const title = req.body.title || req.body.titre;
       if (!title) return res.status(400).json({ error: 'Le titre est requis' });
-      const _pg2 = getTodoPg();
-      if (_pg2) {
-        const r = await _pg2.addTask(title);
+      
+      const _pg = getTodoPg();
+      const _mongo = isMongoConnected();
+      
+      if (_pg && _mongo) {
+        const pgTask = await _pg.addTask(title);
+        await TodoSchema.create({ titre: title });
+        return res.status(201).json(pgTask);
+      }
+      if (_pg) {
+        const r = await _pg.addTask(title);
         return res.status(201).json(r);
       }
-      if (db.mongoose && db.mongoose.connection && db.mongoose.connection.readyState === 1) {
+      if (_mongo) {
         const doc = await TodoSchema.create({ titre: title });
         return res.status(201).json({ id: doc._id, titre: doc.titre, fait: doc.fait });
       }
@@ -63,13 +78,22 @@ class TodoController {
   static async complete(req, res) {
     try {
       const idParam = req.params.id;
-      const _pg3 = getTodoPg();
-      if (_pg3) {
-        const ok = await _pg3.completeTask(idParam);
+      const _pg = getTodoPg();
+      const _mongo = isMongoConnected();
+      
+      if (_pg && _mongo) {
+        const ok = await _pg.completeTask(idParam);
+    
+        await TodoSchema.updateMany({ titre: { $exists: true } }, { fait: true });
         if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
         return res.json({ message: 'Tâche marquée comme terminée' });
       }
-      if (db.mongoose && db.mongoose.connection && db.mongoose.connection.readyState === 1) {
+      if (_pg) {
+        const ok = await _pg.completeTask(idParam);
+        if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
+        return res.json({ message: 'Tâche marquée comme terminée' });
+      }
+      if (_mongo) {
         const updated = await TodoSchema.findByIdAndUpdate(idParam, { fait: true });
         if (!updated) return res.status(404).json({ error: 'Tâche introuvable' });
         return res.json({ message: 'Tâche marquée comme terminée' });
@@ -88,13 +112,21 @@ class TodoController {
   static async delete(req, res) {
     try {
       const idParam = req.params.id;
-      const _pg4 = getTodoPg();
-      if (_pg4) {
-        const ok = await _pg4.deleteTask(idParam);
+      const _pg = getTodoPg();
+      const _mongo = isMongoConnected();
+      
+      if (_pg && _mongo) {
+        const ok = await _pg.deleteTask(idParam);
+        await TodoSchema.deleteMany({});
         if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
         return res.json({ message: 'Tâche supprimée avec succès' });
       }
-      if (db.mongoose && db.mongoose.connection && db.mongoose.connection.readyState === 1) {
+      if (_pg) {
+        const ok = await _pg.deleteTask(idParam);
+        if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
+        return res.json({ message: 'Tâche supprimée avec succès' });
+      }
+      if (_mongo) {
         const removed = await TodoSchema.findByIdAndDelete(idParam);
         if (!removed) return res.status(404).json({ error: 'Tâche introuvable' });
         return res.json({ message: 'Tâche supprimée avec succès' });
@@ -110,4 +142,4 @@ class TodoController {
   }
 }
 
-module.exports = TodoController;
+export default TodoController;

@@ -1,4 +1,4 @@
-class TodoPgModel {
+export default class TodoPgModel {
   constructor(client) {
     this.client = client;
   }
@@ -23,5 +23,3 @@ class TodoPgModel {
     return res.rowCount > 0;
   }
 }
-
-module.exports = TodoPgModel;

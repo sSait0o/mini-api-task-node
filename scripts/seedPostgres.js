@@ -1,5 +1,4 @@
-// seeds Postgres with a test todo
-const { Client } = require('pg');
+import { Client } from 'pg';
 
 const url = process.env.POSTGRES_URL || 'postgres://postgres:pass@localhost:5432/postgres';
 

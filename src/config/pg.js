@@ -1,17 +1,16 @@
-const { Client } = require('pg');
+import { Client } from 'pg';
 
-let client = null;
+let _client = null;
 
-async function connect(connectionString) {
+export async function connect(connectionString) {
   if (!connectionString) {
     console.warn('POSTGRES_URL not set - skipping Postgres connection');
     return null;
   }
-  client = new Client({ connectionString });
-  await client.connect();
+  _client = new Client({ connectionString });
+  await _client.connect();
   console.log('Postgres connected');
-  // ensure table exists
-  await client.query(`
+  await _client.query(`
     CREATE TABLE IF NOT EXISTS todos (
       id SERIAL PRIMARY KEY,
       titre TEXT NOT NULL,
@@ -19,7 +18,7 @@ async function connect(connectionString) {
       created_at TIMESTAMP DEFAULT now()
     )
   `);
-  return client;
+  return _client;
 }
 
-module.exports = { connect, client: () => client };
+export const client = () => _client;

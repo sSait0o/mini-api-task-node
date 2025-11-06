@@ -1,4 +1,4 @@
-class Todo {
+export default class Todo {
   constructor() {
     this._id = 0;
     this.tasks = [];
@@ -29,5 +29,3 @@ class Todo {
     return true;
   }
 }
-
-module.exports = Todo;

@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const TodoSchema = require('../src/models/todoSchema');
+import mongoose from 'mongoose';
+import TodoSchema from '../src/models/todoSchema.js';
 
 const url = process.env.MONGODB_URI || 'mongodb://localhost:27017/todolist';
 

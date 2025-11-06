@@ -1,4 +1,4 @@
-const Todo = require('../src/models/todoModel');
+import Todo from '../src/models/todoModel.js';
 
 describe('Todo in-memory model', () => {
   let model;

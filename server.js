@@ -1,30 +1,30 @@
-// server.js: configure and start the Express app
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
 
-const todoRoutes = require('./src/routes/todoRoutes');
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import todoRoutes from './src/routes/todoRoutes.js';
+import * as db from './src/config/db.js';
+import * as pg from './src/config/pg.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// Routes (mount for compatibility)
 app.use('/api/todos', todoRoutes);
 app.use('/tasks', todoRoutes);
 
 app.use(express.static('public'));
-app.get('/', (req, res) => res.sendFile(require('path').resolve(__dirname, 'public', 'index.html')));
-
+app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'public', 'index.html')));
 
 app.get('/api', (req, res) => res.send('Todolist API is running'));
 
 const PORT = process.env.PORT || 3000;
-
-// connect to DBs (Postgres first, then Mongo) then start server
-const db = require('./src/config/db');
-const pg = require('./src/config/pg');
 
 Promise.resolve()
   .then(() => pg.connect(process.env.POSTGRES_URL))
@@ -48,9 +48,7 @@ Promise.resolve()
           console.log(`Base de données: ${db.mongoose.connection.name || process.env.MONGODB_DB || 'todolist'}`);
           console.log('========================');
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     });
 
     server.on('error', (err) => {
