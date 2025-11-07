@@ -7,6 +7,9 @@ import { fileURLToPath } from 'url';
 import todoRoutes from './src/routes/todoRoutes.js';
 import * as db from './src/config/db.js';
 import * as pg from './src/config/pg.js';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './src/swaggerDoc.js';
+import authRoutes from './src/routes/authRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,6 +28,10 @@ app.get('/', (req, res) => res.sendFile(path.resolve(__dirname, 'public', 'index
 app.get('/api', (req, res) => res.send('Todolist API is running'));
 
 const PORT = process.env.PORT || 3000;
+
+// Serve API docs (Swagger UI)
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/auth', authRoutes);
 
 Promise.resolve()
   .then(() => pg.connect(process.env.POSTGRES_URL))

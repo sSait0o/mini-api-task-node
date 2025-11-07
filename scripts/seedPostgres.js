@@ -9,9 +9,11 @@ async function run() {
     id SERIAL PRIMARY KEY,
     titre TEXT NOT NULL,
     fait BOOLEAN DEFAULT false,
+    owner TEXT,
     created_at TIMESTAMP DEFAULT now()
   )`);
-  const res = await client.query('INSERT INTO todos (titre) VALUES ($1) RETURNING id, titre, fait', ['Seed PG test']);
+  await client.query(`ALTER TABLE todos ADD COLUMN IF NOT EXISTS owner TEXT`);
+  const res = await client.query('INSERT INTO todos (titre, owner) VALUES ($1, $2) RETURNING id, titre, fait', ['Seed PG test', 'seed-user']);
   console.log('Inserted into Postgres:', res.rows[0]);
   await client.end();
 }

@@ -1,6 +1,4 @@
 import Todo from '../models/todoModel.js';
-import TodoSchema from '../models/todoSchema.js';
-import * as db from '../config/db.js';
 import * as pgConf from '../config/pg.js';
 import TodoPgModel from '../models/todoPgModel.js';
 
@@ -17,29 +15,15 @@ function getTodoPg() {
   return null;
 }
 
-function isMongoConnected() {
-  return db.mongoose && db.mongoose.connection && db.mongoose.connection.readyState === 1;
-}
-
 class TodoController {
   static async list(req, res) {
     try {
       const _pg = getTodoPg();
-      const _mongo = isMongoConnected();
-      
-      if (_pg && _mongo) {
-        const rows = await _pg.getAll();
-        return res.json(rows);
-      }
-      if (_pg) {
-        const rows = await _pg.getAll();
-        return res.json(rows);
-      }
-      if (_mongo) {
-        const docs = await TodoSchema.find().sort({ createdAt: 1 }).lean();
-        return res.json(docs.map(d => ({ id: d._id, titre: d.titre, fait: d.fait })));
-      }
-      return res.json(todoModel.getAll());
+      const userId = req.user && req.user.userId;
+      if (!_pg) return res.json(todoModel.getAll());
+      if (!userId) return res.status(401).json({ error: 'Utilisateur non authentifié' });
+      const rows = await _pg.getAll(userId);
+      return res.json(rows);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Erreur serveur' });
@@ -50,25 +34,15 @@ class TodoController {
     try {
       const title = req.body.title || req.body.titre;
       if (!title) return res.status(400).json({ error: 'Le titre est requis' });
-      
       const _pg = getTodoPg();
-      const _mongo = isMongoConnected();
-      
-      if (_pg && _mongo) {
-        const pgTask = await _pg.addTask(title);
-        await TodoSchema.create({ titre: title });
-        return res.status(201).json(pgTask);
+      const userId = req.user && req.user.userId;
+      if (!_pg) {
+        const newTask = todoModel.addTask(title);
+        return res.status(201).json(newTask);
       }
-      if (_pg) {
-        const r = await _pg.addTask(title);
-        return res.status(201).json(r);
-      }
-      if (_mongo) {
-        const doc = await TodoSchema.create({ titre: title });
-        return res.status(201).json({ id: doc._id, titre: doc.titre, fait: doc.fait });
-      }
-      const newTask = todoModel.addTask(title);
-      res.status(201).json(newTask);
+      if (!userId) return res.status(401).json({ error: 'Utilisateur non authentifié' });
+      const r = await _pg.addTask(title, userId);
+      return res.status(201).json(r);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Erreur serveur' });
@@ -79,30 +53,18 @@ class TodoController {
     try {
       const idParam = req.params.id;
       const _pg = getTodoPg();
-      const _mongo = isMongoConnected();
-      
-      if (_pg && _mongo) {
-        const ok = await _pg.completeTask(idParam);
-    
-        await TodoSchema.updateMany({ titre: { $exists: true } }, { fait: true });
+      const userId = req.user && req.user.userId;
+      if (!_pg) {
+        const id = parseInt(idParam, 10);
+        if (Number.isNaN(id)) return res.status(400).json({ error: 'ID invalide' });
+        const ok = todoModel.completeTask(id);
         if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
         return res.json({ message: 'Tâche marquée comme terminée' });
       }
-      if (_pg) {
-        const ok = await _pg.completeTask(idParam);
-        if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
-        return res.json({ message: 'Tâche marquée comme terminée' });
-      }
-      if (_mongo) {
-        const updated = await TodoSchema.findByIdAndUpdate(idParam, { fait: true });
-        if (!updated) return res.status(404).json({ error: 'Tâche introuvable' });
-        return res.json({ message: 'Tâche marquée comme terminée' });
-      }
-      const id = parseInt(idParam, 10);
-      if (Number.isNaN(id)) return res.status(400).json({ error: 'ID invalide' });
-      const ok = todoModel.completeTask(id);
+      if (!userId) return res.status(401).json({ error: 'Utilisateur non authentifié' });
+      const ok = await _pg.completeTask(idParam, userId);
       if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
-      res.json({ message: 'Tâche marquée comme terminée' });
+      return res.json({ message: 'Tâche marquée comme terminée' });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Erreur serveur' });
@@ -113,28 +75,17 @@ class TodoController {
     try {
       const idParam = req.params.id;
       const _pg = getTodoPg();
-      const _mongo = isMongoConnected();
-      
-      if (_pg && _mongo) {
-        const ok = await _pg.deleteTask(idParam);
-        await TodoSchema.deleteMany({});
-        if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
+      const userId = req.user && req.user.userId;
+      if (!_pg) {
+        const id = parseInt(idParam, 10);
+        const deleted = todoModel.deleteTask(id);
+        if (!deleted) return res.status(404).json({ error: 'Tâche introuvable' });
         return res.json({ message: 'Tâche supprimée avec succès' });
       }
-      if (_pg) {
-        const ok = await _pg.deleteTask(idParam);
-        if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
-        return res.json({ message: 'Tâche supprimée avec succès' });
-      }
-      if (_mongo) {
-        const removed = await TodoSchema.findByIdAndDelete(idParam);
-        if (!removed) return res.status(404).json({ error: 'Tâche introuvable' });
-        return res.json({ message: 'Tâche supprimée avec succès' });
-      }
-      const id = parseInt(idParam, 10);
-      const deleted = todoModel.deleteTask(id);
-      if (!deleted) return res.status(404).json({ error: 'Tâche introuvable' });
-      res.json({ message: 'Tâche supprimée avec succès' });
+      if (!userId) return res.status(401).json({ error: 'Utilisateur non authentifié' });
+      const ok = await _pg.deleteTask(idParam, userId);
+      if (!ok) return res.status(404).json({ error: 'Tâche introuvable' });
+      return res.json({ message: 'Tâche supprimée avec succès' });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Erreur serveur' });
